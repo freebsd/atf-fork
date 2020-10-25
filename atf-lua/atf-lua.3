@@ -1,0 +1,327 @@
+.\"
+.\" SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+.\"
+.\" Copyright (c) 202o Kyle Evans <kevans@FreeBSD.org>
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"
+.Dd October 21, 2020
+.Dt ATF-LUA 3
+.Os
+.Sh NAME
+.Nm atf.TestCase ,
+.Nm atf.check_equal ,
+.Nm atf.config_get ,
+.Nm atf.config_has ,
+.Nm atf.expect_death ,
+.Nm atf.expect_exit ,
+.Nm atf.expect_fail ,
+.Nm atf.expect_pass ,
+.Nm atf.expect_signal ,
+.Nm atf.expect_timeout ,
+.Nm atf.fail ,
+.Nm atf.get ,
+.Nm atf.get_srcdir ,
+.Nm atf.pass ,
+.Nm atf.require_prog ,
+.Nm atf.set ,
+.Nm atf.skip
+.Nd Lua API to write ATF-based test programs
+.Sh SYNOPSIS
+.Dv atf.TestCase
+.Pp
+.Fn atf.check_equal "expected_expression" "actual_expression"
+.Fn atf.config_get "varname" "default"
+.Fn atf.config_has "varname"
+.Fn atf.expect_death "reason"
+.Fn atf.expect_exit "reason" "exitcode"
+.Fn atf.expect_fail "reason"
+.Fn atf.expect_pass
+.Fn atf.expect_signal "reason" "signal"
+.Fn atf.expect_timeout "reason"
+.Fn atf.fail "reason"
+.Fn atf.get "varname"
+.Fn atf.get_srcdir
+.Fn atf.pass
+.Fn atf.require_prog "prog_name"
+.Fn atf.set "varname" "value"
+.Fn atf.skip "reason"
+.Sh DESCRIPTION
+ATF
+provides a simple but powerful interface to easily write test programs in
+the Lua scripting language.
+These are extremely helpful given that they are trivial to write due to the
+language simplicity and the great deal of available external tools, so they
+are often ideal to test other applications at the user level.
+.Pp
+Test programs written using this library must be run using the
+.Xr atf-lua 1
+interpreter by putting the following on their very first line:
+.Bd -literal -offset indent
+#! /path/to/bin/atf-lua
+.Ed
+.Pp
+Lua-based test programs are more flexible than their
+.Xr atf-sh 1
+counterpart.
+The basic test structure will resemble this:
+.Bd -literal -offset indent
+local atf = require('atf')
+
+atf.TestCase "tc1" {
+    head = function()
+        ... first test case's header ...
+    end,
+    body = function()
+        ... first test case's body ...
+    end,
+}
+
+atf.TestCase "tc2" {
+    head = function()
+        ... second test case's header ...
+    end,
+    body = function()
+        ... second test case's body ...
+    end,
+    cleanup = function()
+        ... second test case's cleanup ...
+    end,
+}
+
+\&... additional test cases ...
+.Ed
+.Ss Definition of test cases
+Test cases have an identifier and are composed of three different parts:
+the header, the body and an optional cleanup routine, all of which are
+described in
+.Xr atf-test-case 4 .
+To define test cases, one must construct it with
+.Dv atf.TestCase ,
+which takes a first parameter specifying the test case's name and instructs the
+library to accept it as a valid test case.
+The second parameter is an object defining the test case, which should include
+.Fn body ,
+and may include
+.Fn head
+and
+.Fn cleanup .
+.Pp
+It is important to note that an
+.Dv atf.TestCase ,
+unlike in other
+.Xr atf 7
+framework libraries,
+.Em does
+set the test case up for execution when the program is run.
+.Ss Program initialization
+This library does not have an analog for the
+.Nm atf_init_test_cases
+required by
+.Xr atf-sh 3
+to register test cases to run.
+.Ss Configuration variables
+The test case has read-only access to the current configuration variables
+through the
+.Nm atf.config_has
+and
+.Nm atf.config_get
+methods.
+The former takes a single parameter specifying a variable name and returns
+a boolean indicating whether the variable is defined or not.
+The latter can take one or two parameters.
+If it takes only one, it specifies the variable from which to get the
+value, and this variable must be defined.
+If it takes two, the second one specifies a default value to be returned
+if the variable is not available.
+.Ss Access to the source directory
+It is possible to get the path to the test case's source directory from
+anywhere in the test program by using the
+.Nm atf.get_srcdir
+function.
+.Ss Requiring programs
+Aside from the
+.Va require.progs
+meta-data variable available in the header only, one can also check for
+additional programs in the test case's body by using the
+.Nm atf.require_prog
+function, which takes the base name or full path of a single binary.
+Relative paths are forbidden.
+If it is not found, the test case will be automatically skipped.
+.Ss Test case finalization
+The test case finalizes either when the body reaches its end, at which
+point the test is assumed to have
+.Em passed ,
+or at any explicit call to
+.Nm atf.pass ,
+.Nm atf.fail
+or
+.Nm atf.skip .
+These three functions terminate the execution of the test case immediately.
+The cleanup routine will be processed afterwards in a completely automated
+way, regardless of the test case's termination reason.
+.Pp
+.Nm atf.pass
+does not take any parameters.
+.Nm atf.fail
+and
+.Nm atf.skip
+take a single string parameter that describes why the test case failed or
+was skipped, respectively.
+It is very important to provide a clear error message in both cases so that
+the user can quickly know why the test did not pass.
+.Ss Expectations
+Everything explained in the previous section changes when the test case
+expectations are redefined by the programmer.
+.Pp
+Each test case has an internal state called
+.Sq expect
+that describes what the test case expectations are at any point in time.
+The value of this property can change during execution by any of:
+.Bl -tag -width indent
+.It Fn atf.expect_death "reason"
+Expects the test case to exit prematurely regardless of the nature of the
+exit.
+.It Fn atf.expect_exit "reason" "exitcode"
+Expects the test case to exit cleanly.
+.Pp
+.Fa exitcode
+is optional.
+If
+.Fa exitcode
+is provided, the runtime engine will validate that the exit code of the test
+case matches the one provided in this call.
+Otherwise, the exact value will be ignored.
+.It Fn atf.expect_fail "reason"
+Any failure raised in this mode is recorded, but such failures do not report
+the test case as failed; instead, the test case finalizes cleanly and is
+reported as
+.Sq expected failure ;
+this report includes the provided
+.Fa reason
+as part of it.
+If no error is raised while running in this mode, then the test case is
+reported as
+.Sq failed .
+.Pp
+This mode is useful to reproduce actual known bugs in tests.
+Whenever the developer fixes the bug later on, the test case will start
+reporting a failure, signaling the developer that the test case must be
+adjusted to the new conditions.
+In this situation, it is useful, for example, to set
+.Fa reason
+as the bug number for tracking purposes.
+.It Fn atf.expect_pass
+This is the normal mode of execution.
+In this mode, any failure is reported as such to the user and the test case
+is marked as
+.Sq failed .
+.It Fn atf.expect_signal "reason" "signo"
+Expects the test case to terminate due to the reception of a signal.
+.Pp
+.Fa signo
+is optional.
+If
+.Fa signo
+is provided, the runtime engine will validate that the signal that terminated
+the test case matches the one provided in this call.
+Otherwise, the exact value will be ignored.
+.It Fn atf.expect_timeout "reason"
+Expects the test case to execute for longer than its timeout.
+.El
+.Ss Helper functions for common checks
+.Bl -tag -width indent
+.It Nm atf.check_equal "expected_expression" "actual_expression"
+This function takes two expressions, evaluates them and, if their
+results differ, aborts the test case with an appropriate failure message.
+The common style is to put the expected value in the first parameter and the
+actual value in the second parameter.
+.El
+.Ss Test inheritance
+Test programs written with
+.Nm
+can take advantage of test object inheritance.
+By default, all tests are derived from the
+.Dv atf.TestCase
+.Dq class
+and auto-registered, but test cases can also opt out of auto-registration if
+they're primarily intended for being inherited by providing a boolean
+.Va atf_auto
+in the test case definition.
+.Pp
+See
+.Sx EXAMPLES .
+.Sh EXAMPLES
+The following shows a complete test program with a single test case that
+validates the addition operator:
+.Bd -literal -offset indent
+local atf = require('atf')
+
+atf.TestCase "addition" {
+    head = function()
+        atf.set("descr", "Sample tests for the addition operator")
+    end,
+    body = function()
+        atf.check_equal(0, 0 + 0)
+        atf.check_equal(1, 0 + 1)
+        atf.check_equal(1, 1 + 0)
+        atf.check_equal(2, 1 + 1)
+        atf.check_equal(300, 100 + 200)
+    end,
+}
+.Ed
+.Pp
+The following showcases various modes of test inheritance that are allowed:
+.Bd -literal -offset indent
+local atf = require('atf')
+
+-- The ident string of a non-auto TestCase is generally unused, since these are
+-- not auto-registered by default.  They're not technically required to be
+-- unique.
+local TestSkel = atf.TestCase "skeleton" {
+    atf_auto = false,
+    -- This head function will be called for any tests that inherit from
+    -- TestSkel.  Note that a body is not provided here, so by default a
+    -- test derived from this will fail because they're unimplemented.
+    head = function()
+        atf.set("require.user", "unprivileged")
+    end,
+}
+
+-- The local we assigned to the result of the above atf.TestCase expression
+-- can then be used to derive another test, RequiresUnpriv.
+TestSkel "RequiresUnpriv" {
+    -- The atf_auto property is not inherited, and it's assumed to be true
+    -- if it's not set.  Therefore, any test derived from the above skeleton
+    -- will still get autoregistered.
+    body = function()
+        -- Execute some things that require an unprivileged user.
+    end,
+}
+.Ed
+.Sh SEE ALSO
+.Xr atf-lua 1 ,
+.Xr atf-test-program 1 ,
+.Xr atf-test-case 4

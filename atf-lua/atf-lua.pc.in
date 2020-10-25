@@ -1,0 +1,8 @@
+# ATF pkg-config file
+
+exec_prefix=__EXEC_PREFIX__
+interpreter=${exec_prefix}/bin/atf-lua
+
+Name: atf-lua
+Description: Automated Testing Framework (Lua binding)
+Version: __ATF_VERSION__
