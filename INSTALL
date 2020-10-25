@@ -39,6 +39,8 @@ To build and use ATF successfully you need:
 
 * A make(1) utility.
 
+* Lua 5.2 or later
+
 If you are building ATF from the code on the repository, you will also need
 to have GNU autoconf, automake and libtool installed.
 

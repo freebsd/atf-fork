@@ -22,7 +22,7 @@
 .\" IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 .\" OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 .\" IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd September 14, 2014
+.Dd October 22, 2020
 .Dt ATF 7
 .Os
 .Sh NAME
@@ -64,6 +64,8 @@ documentation shipped with
 C programming interface.
 .It Xr atf-c++ 3
 C++ programming interface.
+.It Xr atf-lua 3
+Lua programming interface.
 .It Xr atf-sh 3
 .Xr sh 1
 programming interface.
