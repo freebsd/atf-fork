@@ -43,6 +43,7 @@ ACLOCAL_AMFLAGS = -I m4
 include admin/Makefile.am.inc
 include atf-c/Makefile.am.inc
 include atf-c++/Makefile.am.inc
+include atf-lua/Makefile.am.inc
 include atf-sh/Makefile.am.inc
 include bootstrap/Makefile.am.inc
 include doc/Makefile.am.inc
@@ -83,6 +84,16 @@ installcheck-local: $(INSTALLCHECK_TARGETS)
 pkgtests_DATA = Kyuafile
 EXTRA_DIST += $(pkgtests_DATA)
 
+BUILD_LUA_TP = \
+	test -d "$$(dirname "$${dst}")" || mkdir -p "$$(dirname "$${dst}")"; \
+	echo "\#! $(bindir)/atf-lua" >"$${dst}"; \
+	if [ -n "$${substs}" ]; then \
+	    cat $${src} | sed $${substs} >>"$${dst}"; \
+	else \
+	    cat $${src} >>"$${dst}"; \
+	fi; \
+	chmod +x "$${dst}"
+
 BUILD_SH_TP = \
 	test -d "$$(dirname "$${dst}")" || mkdir -p "$$(dirname "$${dst}")"; \
 	echo "\#! $(bindir)/atf-sh" >"$${dst}"; \
@@ -106,7 +117,7 @@ clean-all:
 # TODO(jmmv): Remove after atf 0.22.
 install-data-hook:
 	cd $(DESTDIR)$(man3dir) && \
-	for binding in c c++ sh; do \
+	for binding in c c++ lua sh; do \
 	    rm -f "atf-$${binding}-api.3"; \
 	    $(LN_S) "atf-$${binding}.3" "atf-$${binding}-api.3"; \
 	done

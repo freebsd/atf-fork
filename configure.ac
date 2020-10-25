@@ -143,6 +143,10 @@ AC_PATH_PROG([KYUA], [kyua])
 AM_CONDITIONAL([HAVE_KYUA], [test -n "${KYUA}"])
 AC_PATH_PROG([GIT], [git])
 
+AX_PROG_LUA([5.2], [], [AC_MSG_NOTICE([passed])], [AC_MSG_ERROR([failed])])
+AX_LUA_HEADERS([AC_MSG_NOTICE([passed])], [AC_MSG_ERROR([failed])])
+AX_LUA_LIBS([AC_MSG_NOTICE([passed])], [AC_MSG_ERROR([failed])])
+
 dnl -----------------------------------------------------------------------
 dnl Finally, generate output.
 dnl -----------------------------------------------------------------------
